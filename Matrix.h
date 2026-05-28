@@ -7,35 +7,234 @@
 #include <cmath>
 #include <initializer_list>
 
+/**
+ * @brief Класс для работы с матрицами произвольного размера
+ * 
+ * @tparam T Тип элементов матрицы (int, double, float и т.д.)
+ * 
+ * Реализует основные операции линейной алгебры:
+ * - Сложение, вычитание, умножение матриц
+ * - Транспонирование, определитель (2x2, 3x3)
+ * - LU-разложение, обратная матрица, решение систем Ax = b
+ * 
+ * @note В проекте не используется прямое управление памятью (new/delete),
+ *       все данные хранятся в std::vector
+ */
 template<typename T>
 class Matrix {
 private:
-    std::vector<std::vector<T>> data;
-    size_t rows, cols;
+    std::vector<std::vector<T>> data;  ///< Двумерный вектор для хранения элементов матрицы
+    size_t rows;                        ///< Количество строк
+    size_t cols;                        ///< Количество столбцов
 
 public:
-    // Конструкторы
+    /**
+     * @brief Конструктор матрицы заданного размера
+     * @param r Количество строк
+     * @param c Количество столбцов
+     * @throws std::invalid_argument Если r == 0 или c == 0
+     * 
+     * Пример:
+     * @code
+     * Matrix<int> M(3, 4);  // создаёт матрицу 3×4, заполненную нулями
+     * @endcode
+     */
     Matrix(size_t r = 1, size_t c = 1);
+    
+    /**
+     * @brief Конструктор из initializer_list (удобное создание маленьких матриц)
+     * @param list Список списков, например {{1,2},{3,4}}
+     * @throws std::invalid_argument Если матрица пустая или строки разной длины
+     * 
+     * Пример:
+     * @code
+     * Matrix<int> A = {{1, 2, 3}, {4, 5, 6}};
+     * @endcode
+     */
     Matrix(std::initializer_list<std::initializer_list<T>> list);
     
-    // Доступ к элементам
+    /**
+     * @brief Доступ к элементу матрицы с проверкой границ
+     * @param i Номер строки (от 0 до rows-1)
+     * @param j Номер столбца (от 0 до cols-1)
+     * @return Ссылка на элемент (позволяет изменять значение)
+     * @throws std::out_of_range При выходе за границы матрицы
+     * 
+     * Пример:
+     * @code
+     * Matrix<int> A(2, 2);
+     * A.at(0, 0) = 5;  // установить значение
+     * int x = A.at(0, 0);  // прочитать значение
+     * @endcode
+     */
     T& at(size_t i, size_t j);
+    
+    /**
+     * @brief Константный доступ к элементу матрицы (только чтение)
+     * @param i Номер строки (от 0 до rows-1)
+     * @param j Номер столбца (от 0 до cols-1)
+     * @return Константная ссылка на элемент
+     * @throws std::out_of_range При выходе за границы матрицы
+     * 
+     * Используется для константных объектов матрицы.
+     */
     const T& at(size_t i, size_t j) const;
+    
+    /**
+     * @brief Получить количество строк
+     * @return rows
+     */
     size_t getRows() const { return rows; }
+    
+    /**
+     * @brief Получить количество столбцов
+     * @return cols
+     */
     size_t getCols() const { return cols; }
     
-    // Основные операции
+    /**
+     * @brief Транспонирование матрицы
+     * @return Новая матрица, где строки исходной стали столбцами
+     * 
+     * Пример:
+     * @code
+     * Matrix<int> A = {{1, 2, 3}, {4, 5, 6}};
+     * Matrix<int> B = A.transpose();
+     * // B = {{1, 4}, {2, 5}, {3, 6}}
+     * @endcode
+     */
     Matrix transpose() const;
+    
+    /**
+     * @brief Вычисление определителя матрицы
+     * @return Значение определителя
+     * @throws std::logic_error Если матрица не квадратная или размер > 3
+     * 
+     * @note Реализовано только для матриц 2×2 и 3×3
+     * 
+     * Пример:
+     * @code
+     * Matrix<int> A = {{4, 3}, {6, 3}};
+     * int det = A.determinant();  // det = -6
+     * @endcode
+     */
     T determinant() const;
+    
+    /**
+     * @brief Нахождение обратной матрицы
+     * @return Обратная матрица A⁻¹
+     * @throws std::logic_error Если матрица не квадратная
+     * @throws std::runtime_error Если матрица вырожденная (det = 0)
+     * 
+     * Алгоритм: решаются n систем уравнений Ax = e_j,
+     * где e_j - столбцы единичной матрицы.
+     * 
+     * @note Результат проверяется: A * A⁻¹ = E (единичная матрица)
+     * 
+     * Пример:
+     * @code
+     * Matrix<double> A = {{4, 3}, {6, 3}};
+     * Matrix<double> inv = A.inverse();
+     * // inv = {{-0.5, 0.5}, {1, -0.666667}}
+     * @endcode
+     */
     Matrix inverse() const;
+    
+    /**
+     * @brief Решение системы линейных уравнений Ax = b
+     * @param b Вектор правой части (размер должен быть равен rows)
+     * @return Вектор x (решение системы)
+     * @throws std::logic_error Если матрица не квадратная
+     * @throws std::invalid_argument Если размер b не совпадает с rows
+     * @throws std::runtime_error Если матрица вырожденная
+     * 
+     * Алгоритм: LU-разложение + прямая/обратная подстановка
+     * 
+     * Пример:
+     * @code
+     * Matrix<double> A = {{4, 3}, {6, 3}};
+     * std::vector<double> b = {7, 9};
+     * std::vector<double> x = A.solveLinear(b);  // x = [1, 1]
+     * @endcode
+     */
     std::vector<T> solveLinear(const std::vector<T>& b) const;
     
-    // Перегрузка операторов
+    /**
+     * @brief Оператор сложения матриц
+     * @param other Матрица для сложения
+     * @return Новая матрица (сумма)
+     * @throws std::invalid_argument Если размеры матриц не совпадают
+     * 
+     * Пример:
+     * @code
+     * Matrix<int> A = {{1, 2}, {3, 4}};
+     * Matrix<int> B = {{5, 6}, {7, 8}};
+     * Matrix<int> C = A + B;  // C = {{6, 8}, {10, 12}}
+     * @endcode
+     */
     Matrix operator+(const Matrix& other) const;
+    
+    /**
+     * @brief Оператор вычитания матриц
+     * @param other Матрица для вычитания
+     * @return Новая матрица (разность)
+     * @throws std::invalid_argument Если размеры матриц не совпадают
+     * 
+     * Пример:
+     * @code
+     * Matrix<int> A = {{5, 6}, {7, 8}};
+     * Matrix<int> B = {{1, 2}, {3, 4}};
+     * Matrix<int> C = A - B;  // C = {{4, 4}, {4, 4}}
+     * @endcode
+     */
     Matrix operator-(const Matrix& other) const;
+    
+    /**
+     * @brief Оператор умножения матриц
+     * @param other Матрица для умножения
+     * @return Новая матрица (произведение)
+     * @throws std::invalid_argument Если число столбцов A != числу строк B
+     * 
+     * Пример:
+     * @code
+     * Matrix<int> A = {{1, 2}, {3, 4}};
+     * Matrix<int> B = {{5, 6}, {7, 8}};
+     * Matrix<int> C = A * B;  // C = {{19, 22}, {43, 50}}
+     * @endcode
+     */
     Matrix operator*(const Matrix& other) const;
+    
+    /**
+     * @brief Оператор сравнения матриц на равенство
+     * @param other Матрица для сравнения
+     * @return true если все элементы равны, false в противном случае
+     * 
+     * Пример:
+     * @code
+     * Matrix<int> A = {{1, 2}, {3, 4}};
+     * Matrix<int> B = {{1, 2}, {3, 4}};
+     * if (A == B) { ... }  // true
+     * @endcode
+     */
     bool operator==(const Matrix& other) const;
     
+    /**
+     * @brief Оператор вывода матрицы в поток
+     * @param os Поток вывода (например, std::cout)
+     * @param m Матрица для вывода
+     * @return Ссылка на поток для цепочечного вызова
+     * 
+     * Формат вывода каждой строки: [элемент1 элемент2 ...]
+     * 
+     * Пример:
+     * @code
+     * Matrix<int> A = {{1, 2}, {3, 4}};
+     * std::cout << A;
+     * // Вывод:
+     * // [1 2]
+     * // [3 4]
+     * @endcode
+     */
     friend std::ostream& operator<<(std::ostream& os, const Matrix& m) {
         for (size_t i = 0; i < m.rows; ++i) {
             os << "[";
@@ -49,14 +248,44 @@ public:
     }
     
 private:
+    /**
+     * @brief Структура для хранения результатов LU-разложения
+     * 
+     * LU-разложение: P * A = L * U
+     * - L: нижняя треугольная матрица (на диагонали единицы)
+     * - U: верхняя треугольная матрица
+     * - P: вектор перестановок (для численной устойчивости)
+     */
     struct LUResult {
-        Matrix L, U;
-        std::vector<size_t> P;
+        Matrix L;               ///< Нижняя треугольная матрица (единицы на диагонали)
+        Matrix U;               ///< Верхняя треугольная матрица
+        std::vector<size_t> P;  ///< Матрица перестановок (PA = LU)
     };
+    
+    /**
+     * @brief LU-разложение матрицы с частичным выбором главного элемента
+     * @return Структура LUResult, содержащая L, U и P
+     * @throws std::logic_error Если матрица не квадратная
+     * @throws std::runtime_error Если матрица вырожденная (главный элемент близок к нулю)
+     * 
+     * Алгоритм:
+     * 1. Копируем исходную матрицу A
+     * 2. Для каждого столбца k:
+     *    - Находим максимальный по модулю элемент в столбце k (начиная со строки k)
+     *    - Меняем строки местами (запоминаем перестановку в P)
+     *    - Вычисляем множители для строк ниже k
+     *    - Обновляем оставшуюся часть матрицы
+     * 3. Извлекаем L и U из полученной матрицы
+     * 
+     * @note L имеет единицы на диагонали, множители хранятся под диагональю
+     * @note U имеет нули под диагональю
+     */
     LUResult luDecompose() const;
 };
 
-// ========== РЕАЛИЗАЦИЯ МЕТОДОВ ==========
+// ====================================================================
+//                    РЕАЛИЗАЦИЯ МЕТОДОВ
+// ====================================================================
 
 template<typename T>
 Matrix<T>::Matrix(size_t r, size_t c) : rows(r), cols(c) {
@@ -282,4 +511,4 @@ bool Matrix<T>::operator==(const Matrix& other) const {
     return true;
 }
 
-#endif
+#endif  // MATRIX_H
