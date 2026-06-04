@@ -29,7 +29,6 @@ TEST(MatrixTest, Transpose) {
 TEST(MatrixTest, Inverse) {
     Matrix<double> A = {{4, 3}, {6, 3}};
     Matrix<double> inv = A.inverse();
-    Matrix<double> I = {{1, 0}, {0, 1}};
     Matrix<double> product = A * inv;
     EXPECT_NEAR(product.at(0,0), 1.0, 1e-9);
     EXPECT_NEAR(product.at(0,1), 0.0, 1e-9);
@@ -46,7 +45,7 @@ TEST(MatrixTest, SolveLinear) {
 }
 
 TEST(MatrixTest, SingularMatrixThrows) {
-    Matrix<double> A = {{1, 2}, {2, 4}};  
+    Matrix<double> A = {{1, 2}, {2, 4}};
     EXPECT_THROW(A.inverse(), std::runtime_error);
 }
 
@@ -54,20 +53,28 @@ TEST(MatrixTest, Inverse3x3) {
     Matrix<double> A = {{2, 1, 1},
                         {1, 3, 2},
                         {1, 2, 4}};
-    
     Matrix<double> inv = A.inverse();
-    
     Matrix<double> product = A * inv;
-    
     EXPECT_NEAR(product.at(0,0), 1.0, 1e-9);
     EXPECT_NEAR(product.at(0,1), 0.0, 1e-9);
     EXPECT_NEAR(product.at(0,2), 0.0, 1e-9);
-    
     EXPECT_NEAR(product.at(1,0), 0.0, 1e-9);
     EXPECT_NEAR(product.at(1,1), 1.0, 1e-9);
     EXPECT_NEAR(product.at(1,2), 0.0, 1e-9);
-    
     EXPECT_NEAR(product.at(2,0), 0.0, 1e-9);
     EXPECT_NEAR(product.at(2,1), 0.0, 1e-9);
     EXPECT_NEAR(product.at(2,2), 1.0, 1e-9);
+}
+
+TEST(MatrixTest, OutOfBoundsThrows) {
+    Matrix<int> A(2, 2);
+    EXPECT_THROW(A.at(2, 0), std::out_of_range);
+    EXPECT_THROW(A.at(0, 2), std::out_of_range);
+    EXPECT_THROW(A.at(5, 5), std::out_of_range);
+}
+
+TEST(MatrixTest, AdditionDimensionMismatchThrows) {
+    Matrix<int> A(2, 3);
+    Matrix<int> B(3, 2);
+    EXPECT_THROW(A + B, std::invalid_argument);
 }
